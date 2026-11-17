@@ -9,6 +9,8 @@ let curMatchId = null;
 let lastBoard = null;
 let busy = false;            // กันกดซ้ำระหว่างส่ง move
 let resultShownFor = null;   // กัน overlay เด้งซ้ำ
+let myMark = 'X';            // เครื่องหมายของเรา (ใช้ตอน optimistic)
+let gameWaiting = false;     // true = กำลังรอคู่แข่ง -> poll ถี่ขึ้น
 
 const $ = id => document.getElementById(id);
 
@@ -169,8 +171,15 @@ function enterGame(matchId) {
 
 function startGamePoll() {
   stopPoll();
-  pollGame();
-  pollTimer = setInterval(pollGame, CONFIG.POLL_GAME);
+  pollGameLoop();
+}
+// วนด้วย setTimeout เพื่อปรับความถี่ได้ตามสถานการณ์ (รอคู่แข่ง = ถี่ขึ้น)
+async function pollGameLoop() {
+  if (VIEW !== 'game' || !curMatchId) return;
+  await pollGame();
+  if (VIEW !== 'game' || !curMatchId) return;
+  const delay = gameWaiting ? (CONFIG.POLL_GAME_WAIT || 900) : CONFIG.POLL_GAME;
+  pollTimer = setTimeout(pollGameLoop, delay);
 }
 
 async function pollGame() {
@@ -186,6 +195,8 @@ async function pollGame() {
 }
 
 function renderMatch(m) {
+  myMark = m.myMark;
+  gameWaiting = (m.status === 'in_progress' && !m.myTurn);
   $('gRound').textContent = m.round;
   $('gMyMark').textContent = m.myMark;
   $('nameX').textContent = m.player1Name;
@@ -247,22 +258,42 @@ async function onCellClick(i) {
   const cells = (lastBoard || '').split('');
   if (cells[i] !== '_') return;
   busy = true;
-  // optimistic UI เล็กน้อย: ปิดบอร์ดชั่วคราว
-  $('board').classList.add('locked');
+
+  // 🚀 Optimistic UI: แสดงหมากของเราทันที ไม่ต้องรอ server
+  optimisticPlace(i, myMark);
+  playMoveSound();
+
   try {
     const r = await Net.call('makeMove', {
       studentId: ME.studentId, token: ME.token, matchId: curMatchId, cellIndex: i
     });
     if (!r.ok) {
-      // แจ้งเฉพาะกรณีที่ควรรู้ (ไม่ใช่ตา/เดินซ้ำ อาจเกิดจาก latency)
-      if (r.error && r.error.indexOf('ยืนยัน') >= 0) badSession();
-      else beep(220, .12);
+      if (r.error && r.error.indexOf('ยืนยัน') >= 0) { badSession(); return; }
+      // ส่งไม่สำเร็จ -> ดึงสถานะจริงกลับมา (ย้อนหมากที่แสดงไว้)
+      beep(220, .12);
+      await pollGame();
     } else {
-      renderMatch(r.match);
-      playMoveSound();
+      renderMatch(r.match); // ผลจาก server คือความจริงเสมอ
     }
-  } catch (e) { /* offline */ }
-  finally { busy = false; }
+  } catch (e) {
+    await pollGame(); // ออฟไลน์ -> ซิงก์ใหม่เมื่อกลับมา
+  } finally { busy = false; }
+}
+
+// วางหมากของเราบนจอทันที (ยืนยันจริงด้วย renderMatch ภายหลัง)
+function optimisticPlace(i, mark) {
+  const board = $('board');
+  if (board.children.length === 9) {
+    const d = board.children[i];
+    d.classList.add('filled', 'disabled', mark === 'X' ? 'x' : 'o');
+    d.textContent = mark === 'X' ? '✕' : '◯';
+  }
+  const arr = (lastBoard || '_________').split('');
+  arr[i] = mark; lastBoard = arr.join('');
+  board.classList.add('locked');
+  gameWaiting = true; // หลังเราเดิน = รออีกฝ่าย -> poll ถี่ขึ้น
+  $('turnBanner').className = 'turn-banner theirs';
+  $('turnBanner').textContent = '⏳ กำลังส่ง…';
 }
 
 /* ---------- ผลการแข่งขัน + เสียง/อนิเมชัน ---------- */
@@ -319,4 +350,4 @@ function victoryFanfare() {
   notes.forEach((f, i) => setTimeout(() => beep(f, .18, 'triangle'), i * 140));
 }
 
-function stopPoll() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+function stopPoll() { if (pollTimer) { clearTimeout(pollTimer); clearInterval(pollTimer); pollTimer = null; } }

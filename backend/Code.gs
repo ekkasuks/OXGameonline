@@ -353,17 +353,28 @@ function apiGetMyMatch(p) {
 function apiGetMatchState(p) {
   var me = authStudent(p);
   if (!me) return { ok: false, error: 'ยืนยันตัวตนไม่สำเร็จ' };
+
+  // เส้นทางเร็ว: อ่านจาก cache ไม่ต้องแตะชีต Matches ทั้งก้อน
+  var raw = getMatchCache(p.matchId);
+  if (raw && (raw.player1Id === me.studentId || raw.player2Id === me.studentId)) {
+    return { ok: true, match: matchView(raw, me.studentId) };
+  }
+  // cache miss -> อ่านชีตแล้วเติม cache ให้รอบถัดไปเร็ว
   var m = findMatch(p.matchId);
   if (!m) return { ok: false, error: 'ไม่พบแมตช์' };
   if (m.player1Id !== me.studentId && m.player2Id !== me.studentId)
     return { ok: false, error: 'คุณไม่ใช่ผู้เล่นในแมตช์นี้' };
+  putMatchCache(m);
   return { ok: true, match: matchView(m, me.studentId) };
 }
 
+// รับได้ทั้ง "แถวจากชีต" และ "raw จาก cache" (ถ้ามี player1Name/player2Name จะไม่อ่านชีตซ้ำ)
 function matchView(m, myId) {
   var iAmP1 = (m.player1Id === myId);
   var myMark = iAmP1 ? 'X' : 'O';
   var turnMark = (m.currentTurn === 'player1') ? 'X' : 'O';
+  var p1Name = m.player1Id === AI_ID ? '🤖 AI' : (m.player1Name || nameOf(m.player1Id));
+  var p2Name = m.player2Id === AI_ID ? '🤖 AI' : (m.player2Name || nameOf(m.player2Id));
   return {
     matchId: m.matchId,
     round: Number(m.round),
@@ -375,11 +386,34 @@ function matchView(m, myId) {
     winnerId: m.winnerId,
     result: resultForStudent(m, myId),
     myScore: iAmP1 ? Number(m.player1Score || 0) : Number(m.player2Score || 0),
+    player1Name: p1Name,
+    player2Name: p2Name,
+    myName: iAmP1 ? p1Name : p2Name,
+    opponentName: iAmP1 ? p2Name : p1Name
+  };
+}
+
+/* ----- Cache สถานะแมตช์ (ลด latency ของ polling อย่างมาก) ----- */
+function matchCacheKey(id) { return 'ms_' + id; }
+function putMatchCache(m) {
+  if (!m) return;
+  var raw = {
+    matchId: m.matchId, round: Number(m.round),
+    player1Id: m.player1Id, player2Id: m.player2Id,
     player1Name: m.player1Id === AI_ID ? '🤖 AI' : nameOf(m.player1Id),
     player2Name: m.player2Id === AI_ID ? '🤖 AI' : nameOf(m.player2Id),
-    myName: nameOf(myId),
-    opponentName: opponentName(m, myId)
+    isAI: (m.isAI === true || m.isAI === 'true'),
+    boardState: String(m.boardState), currentTurn: m.currentTurn,
+    status: m.status, winnerId: m.winnerId,
+    player1Score: m.player1Score, player2Score: m.player2Score
   };
+  try { CacheService.getScriptCache().put(matchCacheKey(m.matchId), JSON.stringify(raw), 600); } catch (e) {}
+}
+function getMatchCache(id) {
+  try {
+    var v = CacheService.getScriptCache().get(matchCacheKey(id));
+    return v ? JSON.parse(v) : null;
+  } catch (e) { return null; }
 }
 
 function nameOf(id) {
@@ -431,7 +465,7 @@ function apiMakeMove(p) {
 
     var myMark = iAmP1 ? 'X' : 'O';
     board[cell] = myMark;
-    recordMove(m.matchId, me.studentId, cell, myMark);
+    recordMove(m.matchId, me.studentId, cell, myMark, filledCount(board));
 
     var result = evalBoard(board.join(''));
     if (result.over) {
@@ -449,16 +483,20 @@ function apiMakeMove(p) {
       aiPlay(m);
       m = findMatch(m.matchId);
     }
+    putMatchCache(m); // อัปเดต cache ให้คู่แข่งเห็นทันทีตอน poll ครั้งถัดไป
     return { ok: true, match: matchView(m, me.studentId) };
   });
 }
 
-function recordMove(matchId, playerId, cell, mark) {
-  var moves = readAll(SHEETS.MOVES).filter(function (x) { return x.matchId === matchId; });
+// moveNo ส่งเข้ามา (= จำนวนช่องที่เดินแล้ว) เพื่อไม่ต้องอ่านชีต GameMoves ทั้งก้อนทุกตา
+function recordMove(matchId, playerId, cell, mark, moveNo) {
   appendRow(SHEETS.MOVES, {
-    moveId: uid('MV'), matchId: matchId, moveNo: moves.length + 1,
+    moveId: uid('MV'), matchId: matchId, moveNo: moveNo,
     playerId: playerId, cellIndex: cell, mark: mark, timestamp: now()
   });
+}
+function filledCount(boardArr) {
+  var n = 0; for (var i = 0; i < 9; i++) if (boardArr[i] !== '_') n++; return n;
 }
 
 function finishMatch(m, boardStr, result) {
@@ -474,6 +512,7 @@ function finishMatch(m, boardStr, result) {
     boardState: boardStr, status: 'finished', winnerId: winnerId,
     player1Score: p1, player2Score: p2, finishedAt: now()
   });
+  putMatchCache(findMatch(m.matchId)); // ให้ทั้งสองฝ่ายเห็นผลทันที
   rebuildScores();
   audit('system', 'matchFinished', { matchId: m.matchId, winner: winnerId });
 }
@@ -514,7 +553,7 @@ function aiPlay(m) {
     return;
   }
   board[cell] = 'O';
-  recordMove(m.matchId, AI_ID, cell, 'O');
+  recordMove(m.matchId, AI_ID, cell, 'O', filledCount(board));
 
   var result = evalBoard(board.join(''));
   if (result.over) { finishMatch(m, board.join(''), result); return; }
@@ -975,6 +1014,7 @@ function apiEditResult(p) {
     updateRow(SHEETS.MATCHES, m._row, {
       status: 'finished', winnerId: w, player1Score: p1, player2Score: p2, finishedAt: now()
     });
+    putMatchCache(findMatch(m.matchId));
     rebuildScores();
     audit('teacher', 'editResult',
       { matchId: p.matchId, newWinner: w, oldWinner: m.winnerId, reason: p.reason || '' });

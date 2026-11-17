@@ -10,9 +10,10 @@ const CONFIG = {
   API_URL: 'https://script.google.com/macros/s/AKfycbyoBXyA4ISAPACLpC_wHDyDy6SWcdHNUnezabNqCzVLtNR1AvRf6_jrEhEq5TrXjN_t/exec',
 
   // ช่วงเวลา polling (มิลลิวินาที)
-  POLL_GAME: 1500,    // ระหว่างเล่นเกม 1.5 วิ
-  POLL_LOBBY: 4000,   // หน้าห้องรอ 4 วิ
-  POLL_TEACHER: 3000, // แดชบอร์ดครู 3 วิ
+  POLL_GAME: 1200,       // ระหว่างเล่นเกม (ถี่ขึ้นเล็กน้อย)
+  POLL_GAME_WAIT: 900,   // เมื่อกำลังรอคู่แข่ง/บอทเดิน เร่งให้ถี่ขึ้น
+  POLL_LOBBY: 3500,      // หน้าห้องรอ
+  POLL_TEACHER: 3000,    // แดชบอร์ดครู
 
   VERSION: '1.0.0'
 };
