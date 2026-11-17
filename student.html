@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>นักเรียน · OX ONLINE TOURNAMENT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="offlineBar" class="offline-bar">⚠️ ขาดการเชื่อมต่ออินเทอร์เน็ต — กำลังพยายามเชื่อมต่อใหม่…</div>
+  <div class="topbar">
+    <div class="brand"><span class="dot">⭕❌</span> OX Tournament</div>
+    <div id="topRight"></div>
+  </div>
+
+  <!-- ===== หน้าลงทะเบียน ===== -->
+  <div id="view-register" class="container narrow">
+    <div class="card">
+      <h2 style="margin-top:0">ลงทะเบียนเข้าแข่งขัน</h2>
+      <div id="regStatus" class="msg info">กำลังตรวจสอบสถานะ…</div>
+      <div class="field">
+        <label>ชื่อ - นามสกุล</label>
+        <input id="regName" type="text" placeholder="เช่น เด็กชายสมชาย ใจดี" maxlength="60">
+      </div>
+      <div class="field">
+        <label>ระดับชั้น / ห้อง (ถ้ามี)</label>
+        <input id="regRoom" type="text" placeholder="เช่น ป.5/1" maxlength="20">
+      </div>
+      <div id="regMsg"></div>
+      <button id="btnRegister" class="btn block green">ลงทะเบียน</button>
+    </div>
+  </div>
+
+  <!-- ===== หน้ารอแข่งขัน ===== -->
+  <div id="view-lobby" class="container hide">
+    <div class="card waiting-hero">
+      <div class="big-emoji pulse">⏳</div>
+      <h2 id="lobbyName" style="margin:6px 0"></h2>
+      <div id="lobbyStatus"></div>
+    </div>
+    <div class="stat-grid" style="margin-top:18px">
+      <div class="stat"><div class="stat-num" id="sTotal">0</div><div class="stat-label">แมตช์ทั้งหมด</div></div>
+      <div class="stat g"><div class="stat-num" id="sPlayed">0</div><div class="stat-label">เล่นแล้ว</div></div>
+      <div class="stat o"><div class="stat-num" id="sRemain">0</div><div class="stat-label">คงเหลือ</div></div>
+      <div class="stat p"><div class="stat-num" id="sPoints">0</div><div class="stat-label">คะแนนสะสม</div></div>
+    </div>
+    <div class="card" style="margin-top:18px;text-align:center">
+      <div class="stat-label">ผู้ลงทะเบียนทั้งหมด</div>
+      <div class="stat-num" id="sStudents" style="color:var(--purple)">0</div>
+    </div>
+  </div>
+
+  <!-- ===== หน้าเล่นเกม ===== -->
+  <div id="view-game" class="container hide">
+    <div class="game-head">
+      <div class="player-chip x" id="chipX">
+        <span class="mark">✕</span>
+        <div><div class="pname" id="nameX">-</div><div class="ptag">ผู้เล่น X</div></div>
+      </div>
+      <div class="vs">VS</div>
+      <div class="player-chip o" id="chipO">
+        <span class="mark">◯</span>
+        <div><div class="pname" id="nameO">-</div><div class="ptag">ผู้เล่น O</div></div>
+      </div>
+    </div>
+    <div id="turnBanner" class="turn-banner theirs">กำลังโหลด…</div>
+    <div id="board" class="board"></div>
+    <p class="center" style="color:var(--muted);margin-top:14px">
+      รอบที่ <b id="gRound">-</b> · คุณคือ <b id="gMyMark">-</b>
+    </p>
+  </div>
+
+  <!-- ===== ผลการแข่งขัน ===== -->
+  <div id="resultOverlay" class="result-overlay">
+    <div class="result-box">
+      <div class="result-emoji" id="rEmoji">🎉</div>
+      <div class="result-title" id="rTitle">ชนะ!</div>
+      <div class="result-points" id="rPoints"></div>
+      <button class="btn block" id="btnNext">ไปแมตช์ถัดไป</button>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/student.js"></script>
+</body>
+</html>

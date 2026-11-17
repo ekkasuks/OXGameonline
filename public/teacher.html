@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>แดชบอร์ดครู - เกม OX ออนไลน์</title>
+<style>
+  :root {
+    --bg: #0f172a; --panel: #1e293b; --panel2: #273449;
+    --ink: #e2e8f0; --muted: #94a3b8; --line: #334155;
+    --green: #22c55e; --red: #ef4444; --amber: #f59e0b;
+    --blue: #38bdf8; --purple: #a78bfa; --gold: #fbbf24;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg); color: var(--ink); min-height: 100vh; padding: 18px;
+  }
+  header {
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .title { font-size: 1.7rem; font-weight: 900; letter-spacing: 1px; }
+  .title .o { color: var(--blue); } .title .x { color: var(--red); }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; }
+  button {
+    cursor: pointer; border: none; font-family: inherit; font-weight: 800; font-size: .95rem;
+    padding: 12px 18px; border-radius: 12px; color: #fff; transition: transform .08s, filter .15s;
+  }
+  button:active { transform: translateY(2px); }
+  .btn-start { background: var(--green); }
+  .btn-pause { background: var(--amber); }
+  .btn-clear { background: var(--red); }
+  button:hover { filter: brightness(1.08); }
+
+  .grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 18px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border-radius: 18px; padding: 18px; }
+  .panel h2 { margin: 0 0 14px; font-size: 1.15rem; display: flex; align-items: center; gap: 8px; }
+  .badge { background: var(--panel2); color: var(--muted); font-size: .8rem; padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+
+  /* สถานะด้านบน */
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .stat {
+    background: var(--panel); border-radius: 14px; padding: 12px 20px; flex: 1; min-width: 120px; text-align: center;
+  }
+  .stat .num { font-size: 1.8rem; font-weight: 900; }
+  .stat .lbl { font-size: .8rem; color: var(--muted); }
+  .status-line {
+    display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px;
+    font-weight: 800; font-size: .9rem;
+  }
+  .st-open { background: rgba(34,197,94,.15); color: var(--green); }
+  .st-closed { background: rgba(245,158,11,.15); color: var(--amber); }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; }
+  .dot.live { animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+  /* ตารางคะแนน */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px 8px; text-align: left; border-bottom: 1px solid var(--line); font-size: .95rem; }
+  th { color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; }
+  td.c, th.c { text-align: center; }
+  .rank { font-weight: 900; width: 38px; text-align: center; }
+  .rank-1 { color: var(--gold); } .rank-2 { color: #cbd5e1; } .rank-3 { color: #d97706; }
+  .pname { font-weight: 700; }
+  .pts { font-weight: 900; color: var(--blue); font-size: 1.05rem; }
+  .ministatus { font-size: .72rem; padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+  .ms-playing { background: rgba(56,189,248,.15); color: var(--blue); }
+  .ms-queued { background: rgba(167,139,250,.15); color: var(--purple); }
+  .ms-lobby { background: rgba(148,163,184,.15); color: var(--muted); }
+  .ms-result { background: rgba(251,191,36,.15); color: var(--gold); }
+  .kick { background: transparent; color: var(--muted); padding: 2px 8px; font-size: .8rem; border: 1px solid var(--line); }
+  .kick:hover { color: var(--red); border-color: var(--red); }
+
+  /* แมตช์ที่กำลังเล่น */
+  .matches { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+  .match-card { background: var(--panel2); border-radius: 14px; padding: 12px; }
+  .mc-names { display: flex; justify-content: space-between; font-weight: 700; font-size: .9rem; margin-bottom: 8px; }
+  .mc-names .sx { color: var(--red); } .mc-names .so { color: var(--blue); }
+  .mini { display: grid; grid-template-columns: repeat(3,1fr); gap: 4px; max-width: 120px; margin: 0 auto; }
+  .mini div {
+    aspect-ratio: 1/1; background: var(--bg); border-radius: 6px; display: flex; align-items: center;
+    justify-content: center; font-weight: 900; font-size: 1.1rem;
+  }
+  .mini .x { color: var(--red); } .mini .o { color: var(--blue); }
+  .mc-turn { text-align: center; font-size: .78rem; color: var(--muted); margin-top: 8px; }
+  .empty { color: var(--muted); text-align: center; padding: 26px; font-size: .95rem; }
+
+  .connect-info {
+    background: var(--panel2); border-radius: 12px; padding: 12px 16px; font-size: .9rem; color: var(--muted);
+    margin-top: 10px; line-height: 1.6;
+  }
+  .connect-info b { color: var(--ink); }
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: #fff; color: #0f172a; padding: 12px 22px; border-radius: 12px; font-weight: 800;
+    opacity: 0; transition: opacity .3s; z-index: 50;
+  }
+  .toast.show { opacity: .97; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title"><span class="o">O</span><span class="x">X</span> ออนไลน์ · แดชบอร์ดครู</div>
+  <div class="controls">
+    <button class="btn-start" id="toggleBtn">▶️ เปิดการแข่งขัน</button>
+    <button class="btn-clear" id="clearBtn">🗑️ ล้างผลการแข่งขัน</button>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="num" id="stPlayers">0</div><div class="lbl">ผู้เข้าร่วม</div></div>
+  <div class="stat"><div class="num" id="stQueue">0</div><div class="lbl">กำลังรอจับคู่</div></div>
+  <div class="stat"><div class="num" id="stMatches">0</div><div class="lbl">คู่ที่กำลังแข่ง</div></div>
+  <div class="stat">
+    <div style="margin-top:6px;"><span class="status-line st-closed" id="stStatus"><span class="dot"></span> ปิดอยู่</span></div>
+    <div class="lbl" style="margin-top:6px;">สถานะการจับคู่</div>
+  </div>
+</div>
+
+<div class="grid">
+  <!-- ตารางคะแนน -->
+  <div class="panel">
+    <h2>🏆 ตารางคะแนน <span class="badge">ชนะ 3 · เสมอ 1 · แพ้ 0</span></h2>
+    <table>
+      <thead>
+        <tr>
+          <th class="rank">#</th><th>ชื่อ</th>
+          <th class="c">คะแนน</th><th class="c">ช/ส/พ</th><th class="c">สถานะ</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="scoreBody">
+        <tr><td colspan="6" class="empty">ยังไม่มีนักเรียนเข้าร่วม</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- แมตช์กำลังเล่น + วิธีเข้าร่วม -->
+  <div class="panel">
+    <h2>🎮 คู่ที่กำลังแข่งขัน <span class="dot live" style="color:var(--green)"></span></h2>
+    <div class="matches" id="matchesWrap">
+      <div class="empty">ยังไม่มีคู่ที่กำลังแข่ง</div>
+    </div>
+    <div class="connect-info" id="connectInfo">
+      <b>วิธีให้นักเรียนเข้าร่วม:</b> ให้นักเรียนเปิดเบราว์เซอร์แล้วพิมพ์ที่อยู่ของเครื่องครู
+      (ดูที่หน้าต่าง Terminal ที่รันเซิร์ฟเวอร์ เช่น <b>http://192.168.x.x:3000</b>)
+      จากนั้นเลือก "ฉันเป็นนักเรียน" แล้วใส่ชื่อเล่น
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const $ = (id) => document.getElementById(id);
+let mmOpen = false;
+
+socket.on('connect', () => socket.emit('teacher:join'));
+
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+$('toggleBtn').addEventListener('click', () => {
+  socket.emit('teacher:toggle', !mmOpen);
+});
+$('clearBtn').addEventListener('click', () => {
+  if (confirm('ล้างผลการแข่งขันทั้งหมด? คะแนนของนักเรียนทุกคนจะกลับเป็น 0')) {
+    socket.emit('teacher:clear');
+    toast('ล้างผลการแข่งขันแล้ว');
+  }
+});
+
+socket.on('teacher:state', (s) => {
+  mmOpen = s.matchmakingOpen;
+  $('stPlayers').textContent = s.totalPlayers;
+  $('stQueue').textContent = s.queueCount;
+  $('stMatches').textContent = s.matches.length;
+
+  // ปุ่ม + สถานะ
+  const tb = $('toggleBtn');
+  if (mmOpen) {
+    tb.textContent = '⏸️ พักการแข่งขัน'; tb.className = 'btn-pause';
+    $('stStatus').className = 'status-line st-open';
+    $('stStatus').innerHTML = '<span class="dot live"></span> เปิดอยู่ (จับคู่อัตโนมัติ)';
+  } else {
+    tb.textContent = '▶️ เปิดการแข่งขัน'; tb.className = 'btn-start';
+    $('stStatus').className = 'status-line st-closed';
+    $('stStatus').innerHTML = '<span class="dot"></span> ปิดอยู่';
+  }
+
+  renderScores(s.scoreboard);
+  renderMatches(s.matches);
+});
+
+function statusChip(status) {
+  const map = {
+    playing: ['ms-playing', 'กำลังแข่ง'],
+    queued: ['ms-queued', 'รอจับคู่'],
+    result: ['ms-result', 'ดูผล'],
+    lobby: ['ms-lobby', 'ว่าง'],
+  };
+  const [cls, txt] = map[status] || map.lobby;
+  return `<span class="ministatus ${cls}">${txt}</span>`;
+}
+
+function renderScores(list) {
+  const body = $('scoreBody');
+  if (!list.length) {
+    body.innerHTML = '<tr><td colspan="6" class="empty">ยังไม่มีนักเรียนเข้าร่วม</td></tr>';
+    return;
+  }
+  body.innerHTML = list.map((p, i) => {
+    const rankCls = i < 3 ? 'rank-' + (i + 1) : '';
+    const medal = ['🥇', '🥈', '🥉'][i] || (i + 1);
+    return `<tr>
+      <td class="rank ${rankCls}">${medal}</td>
+      <td class="pname">${escapeHtml(p.name)}</td>
+      <td class="c pts">${p.score}</td>
+      <td class="c">${p.wins}/${p.draws}/${p.losses}</td>
+      <td class="c">${statusChip(p.status)}</td>
+      <td class="c"><button class="kick" data-id="${p.id}">ออก</button></td>
+    </tr>`;
+  }).join('');
+  body.querySelectorAll('.kick').forEach((b) => {
+    b.addEventListener('click', () => {
+      if (confirm('นำผู้เล่นคนนี้ออกจากการแข่งขัน?')) socket.emit('teacher:kick', b.dataset.id);
+    });
+  });
+}
+
+function renderMatches(list) {
+  const wrap = $('matchesWrap');
+  if (!list.length) {
+    wrap.innerHTML = '<div class="empty">ยังไม่มีคู่ที่กำลังแข่ง</div>';
+    return;
+  }
+  wrap.innerHTML = list.map((m) => {
+    const [a, b] = m.players;
+    if (!a || !b) return '';
+    const turnName = m.turn === a.id ? a.name : b.name;
+    const cells = m.board.map((v) =>
+      `<div class="${v ? v.toLowerCase() : ''}">${v}</div>`).join('');
+    return `<div class="match-card">
+      <div class="mc-names">
+        <span class="sx">${escapeHtml(a.name)} (${a.symbol})</span>
+        <span class="so">${escapeHtml(b.name)} (${b.symbol})</span>
+      </div>
+      <div class="mini">${cells}</div>
+      <div class="mc-turn">ตาของ ${escapeHtml(turnName)}</div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>

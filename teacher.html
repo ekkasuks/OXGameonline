@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ครู · OX ONLINE TOURNAMENT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+  <div id="offlineBar" class="offline-bar">⚠️ ขาดการเชื่อมต่ออินเทอร์เน็ต — กำลังพยายามเชื่อมต่อใหม่…</div>
+  <div class="topbar">
+    <div class="brand"><span class="dot">⭕❌</span> แดชบอร์ดครู</div>
+    <div id="topRight"></div>
+  </div>
+
+  <!-- ===== เข้าสู่ระบบ ===== -->
+  <div id="view-login" class="container narrow">
+    <div class="card">
+      <h2 style="margin-top:0">เข้าสู่ระบบครู</h2>
+      <div class="field">
+        <label>รหัสผ่านครู</label>
+        <input id="pw" type="password" placeholder="กรอกรหัสผ่าน">
+      </div>
+      <div id="loginMsg"></div>
+      <button id="btnLogin" class="btn block purple">เข้าสู่ระบบ</button>
+      <p style="color:var(--muted);font-size:.85rem;margin-top:14px">
+        รหัสผ่านถูกตรวจสอบที่ Backend เท่านั้น ไม่ถูกเก็บในหน้าเว็บ
+      </p>
+    </div>
+  </div>
+
+  <!-- ===== แดชบอร์ด ===== -->
+  <div id="view-dash" class="container hide">
+    <div class="tabs">
+      <div class="tab active" data-tab="overview">ภาพรวม</div>
+      <div class="tab" data-tab="students">นักเรียน</div>
+      <div class="tab" data-tab="control">ควบคุมการแข่งขัน</div>
+      <div class="tab" data-tab="matches">ตารางแข่งขัน</div>
+      <div class="tab" data-tab="leaderboard">ตารางคะแนน</div>
+    </div>
+
+    <!-- ภาพรวม -->
+    <div id="tab-overview" class="tab-panel">
+      <div style="margin-bottom:14px">
+        สถานะการแข่งขัน: <span id="ovStatus" class="badge gray">-</span>
+        <span id="ovRound" style="color:var(--muted)"></span>
+      </div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-num" id="ovStudents">0</div><div class="stat-label">นักเรียนลงทะเบียน</div></div>
+        <div class="stat"><div class="stat-num" id="ovTotal">0</div><div class="stat-label">แมตช์ทั้งหมด</div></div>
+        <div class="stat g"><div class="stat-num" id="ovDone">0</div><div class="stat-label">แข่งเสร็จ</div></div>
+        <div class="stat o"><div class="stat-num" id="ovPlaying">0</div><div class="stat-label">กำลังแข่ง</div></div>
+        <div class="stat r"><div class="stat-num" id="ovPending">0</div><div class="stat-label">ยังไม่เริ่ม</div></div>
+      </div>
+      <div class="card" style="margin-top:18px">
+        <div class="section-title">สรุปผลคะแนน 10 อันดับแรก</div>
+        <canvas id="chartTop" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- นักเรียน -->
+    <div id="tab-students" class="tab-panel hide">
+      <div class="toolbar">
+        <button class="btn green sm" onclick="openAddStudent()">+ เพิ่มนักเรียน</button>
+        <button class="btn ghost sm" id="btnToggleReg">ปิด/เปิดรับลงทะเบียน</button>
+        <span id="regBadge"></span>
+      </div>
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead><tr><th>#</th><th>ชื่อ-นามสกุล</th><th>ชั้น/ห้อง</th><th>จัดการ</th></tr></thead>
+          <tbody id="studentRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ควบคุม -->
+    <div id="tab-control" class="tab-panel hide">
+      <div class="card">
+        <div class="section-title">ระดับความยาก AI (สำหรับคู่ที่เจอบอท)</div>
+        <div class="toolbar">
+          <select id="aiLevel" class="field" style="max-width:200px;margin:0">
+            <option value="easy">ง่าย (สุ่ม)</option>
+            <option value="medium">ปานกลาง</option>
+            <option value="hard">ยาก (Minimax)</option>
+          </select>
+          <button class="btn sm" onclick="saveAiLevel()">บันทึก</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:16px">
+        <div class="section-title">ปุ่มควบคุม</div>
+        <div id="controlMsg"></div>
+        <div class="toolbar">
+          <button class="btn green" id="cStart">▶ เริ่มการแข่งขัน</button>
+          <button class="btn orange" id="cPause">⏸ หยุดชั่วคราว</button>
+          <button class="btn green" id="cResume">▶ เล่นต่อ</button>
+          <button class="btn purple" id="cNext">⏭ เดินรอบถัดไป</button>
+        </div>
+        <div class="toolbar">
+          <button class="btn red" id="cReset">🔄 รีเซ็ตการแข่งขัน</button>
+          <button class="btn red ghost" id="cCancel">✖ ยกเลิกการแข่งขัน</button>
+          <button class="btn ghost" id="cFinish">🏁 ปิดการแข่งขัน</button>
+        </div>
+        <p style="color:var(--muted);font-size:.88rem">
+          รูปแบบ: ครูกดเดินรอบเอง — นักเรียนในรอบปัจจุบันเล่นพร้อมกัน เมื่อทุกคู่จบแล้วจึงกด "เดินรอบถัดไป"
+        </p>
+      </div>
+    </div>
+
+    <!-- ตารางแข่งขัน -->
+    <div id="tab-matches" class="tab-panel hide">
+      <div class="toolbar">
+        <label>เลือกรอบ:</label>
+        <select id="roundSelect" class="field" style="max-width:160px;margin:0"></select>
+      </div>
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead><tr><th>รอบ</th><th>ผู้เล่น 1 (X)</th><th>ผู้เล่น 2 (O)</th><th>สถานะ</th><th>ผล</th><th></th></tr></thead>
+          <tbody id="matchRows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ตารางคะแนน -->
+    <div id="tab-leaderboard" class="tab-panel hide">
+      <div class="scroll-x">
+        <table class="tbl">
+          <thead><tr>
+            <th>อันดับ</th><th>ชื่อ-นามสกุล</th><th class="center">เกม</th>
+            <th class="center">ชนะ</th><th class="center">เสมอ</th><th class="center">แพ้</th>
+            <th class="center">คะแนนรวม</th>
+          </tr></thead>
+          <tbody id="lbRows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal เพิ่ม/แก้ไขนักเรียน -->
+  <div class="modal-bg" id="modalStudent">
+    <div class="modal">
+      <h3 id="modalTitle">เพิ่มนักเรียน</h3>
+      <input type="hidden" id="mStudentId">
+      <div class="field"><label>ชื่อ-นามสกุล</label><input id="mName" type="text"></div>
+      <div class="field"><label>ชั้น/ห้อง</label><input id="mRoom" type="text"></div>
+      <div id="modalMsg"></div>
+      <div class="toolbar" style="justify-content:flex-end">
+        <button class="btn ghost sm" onclick="closeModal('modalStudent')">ยกเลิก</button>
+        <button class="btn green sm" id="mSave">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- modal ดูแมตช์ / แก้ผล -->
+  <div class="modal-bg" id="modalMatch">
+    <div class="modal">
+      <h3>รายละเอียดแมตช์</h3>
+      <div id="matchDetailBody"></div>
+      <div class="toolbar" style="justify-content:flex-end;margin-top:10px">
+        <button class="btn ghost sm" onclick="closeModal('modalMatch')">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/teacher.js"></script>
+</body>
+</html>

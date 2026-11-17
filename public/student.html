@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>เกม OX ออนไลน์ - นักเรียน</title>
+<style>
+  :root {
+    --bg1: #6d5efc; --bg2: #23d5ab;
+    --card: #ffffff; --ink: #1f2937; --muted: #6b7280;
+    --x: #ef4444; --o: #2563eb;
+    --win: #22c55e; --accent: #7c3aed;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0; font-family: 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh; color: var(--ink);
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
+    display: flex; align-items: center; justify-content: center; padding: 16px;
+  }
+  .card {
+    background: var(--card); border-radius: 24px; width: 100%; max-width: 460px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.25); padding: 26px 24px 30px; text-align: center;
+    animation: pop .3s ease;
+  }
+  @keyframes pop { from { transform: scale(.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  h1 { margin: 0 0 4px; font-size: 1.9rem; letter-spacing: 1px; }
+  .logo-ox { font-weight: 900; }
+  .logo-ox .o { color: var(--o); } .logo-ox .x { color: var(--x); }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: .95rem; }
+  input {
+    width: 100%; padding: 15px 16px; font-size: 1.15rem; border: 2px solid #e5e7eb;
+    border-radius: 14px; text-align: center; outline: none; transition: border .2s;
+  }
+  input:focus { border-color: var(--accent); }
+  button {
+    cursor: pointer; border: none; font-family: inherit; font-weight: 700;
+    border-radius: 14px; transition: transform .08s, filter .2s;
+  }
+  button:active { transform: translateY(2px); }
+  .btn-main {
+    margin-top: 14px; width: 100%; padding: 15px; font-size: 1.15rem; color: #fff;
+    background: linear-gradient(135deg, var(--accent), #ec4899);
+  }
+  .btn-main:disabled { filter: grayscale(.6) opacity(.6); cursor: not-allowed; }
+  .btn-ghost {
+    margin-top: 12px; background: #f3f4f6; color: var(--muted); padding: 10px 16px; font-size: .9rem;
+  }
+  .hidden { display: none !important; }
+
+  /* สถานะผู้เล่น */
+  .me-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #f9fafb; border-radius: 14px; padding: 10px 14px; margin-bottom: 16px;
+  }
+  .me-name { font-weight: 800; font-size: 1.1rem; }
+  .me-score { font-size: .85rem; color: var(--muted); }
+  .pill { background: var(--accent); color: #fff; padding: 4px 12px; border-radius: 999px; font-size: .8rem; font-weight: 700; }
+
+  /* ล็อบบี้ */
+  .status-big { font-size: 1.4rem; font-weight: 800; margin: 18px 0 6px; }
+  .spinner {
+    width: 54px; height: 54px; margin: 18px auto; border-radius: 50%;
+    border: 6px solid #e9e7ff; border-top-color: var(--accent); animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* กระดานเกม */
+  .match-head { margin-bottom: 10px; }
+  .vs { font-size: 1.05rem; color: var(--muted); }
+  .vs b { color: var(--ink); }
+  .turn-tag {
+    display: inline-block; margin: 8px 0 14px; padding: 8px 18px; border-radius: 999px;
+    font-weight: 800; font-size: 1rem;
+  }
+  .turn-you { background: #dcfce7; color: #15803d; }
+  .turn-opp { background: #fef3c7; color: #b45309; }
+  .board {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    max-width: 320px; margin: 0 auto;
+  }
+  .cell {
+    aspect-ratio: 1 / 1; background: #f3f4f6; border-radius: 16px;
+    font-size: 3rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; user-select: none; transition: background .15s, transform .08s;
+  }
+  .cell:hover { background: #e9e7ff; }
+  .cell.filled { cursor: default; }
+  .cell.filled:hover { background: #f3f4f6; }
+  .cell.x { color: var(--x); } .cell.o { color: var(--o); }
+  .cell.win { background: #bbf7d0 !important; animation: flash .6s ease; }
+  .cell.disabled { pointer-events: none; }
+  @keyframes flash { 50% { transform: scale(1.12); } }
+  .my-symbol { font-size: .9rem; color: var(--muted); margin-top: 14px; }
+  .my-symbol b { font-size: 1.1rem; }
+
+  /* ผลการแข่งขัน */
+  .result-emoji { font-size: 4rem; margin: 6px 0; }
+  .result-text { font-size: 1.6rem; font-weight: 900; margin-bottom: 4px; }
+  .result-win { color: var(--win); } .result-lose { color: var(--x); } .result-draw { color: var(--accent); }
+  .notice { background: #fff7ed; color: #9a3412; border-radius: 12px; padding: 10px; font-size: .9rem; margin-top: 14px; }
+  .toast {
+    position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%);
+    background: #111827; color: #fff; padding: 12px 20px; border-radius: 12px;
+    font-weight: 700; opacity: 0; transition: opacity .3s; z-index: 50;
+  }
+  .toast.show { opacity: .95; }
+</style>
+</head>
+<body>
+<div class="card">
+
+  <!-- หน้าเข้าชื่อ -->
+  <section id="screen-login">
+    <h1 class="logo-ox"><span class="o">O</span><span class="x">X</span> ออนไลน์</h1>
+    <p class="sub">ใส่ชื่อเล่นของคุณ แล้วรอจับคู่แข่งขัน</p>
+    <input id="nameInput" maxlength="20" placeholder="ชื่อเล่น เช่น น้องเอ" autocomplete="off" />
+    <button class="btn-main" id="joinBtn">เข้าร่วมการแข่งขัน 🚀</button>
+    <p class="sub" id="loginHint" style="margin-top:14px;"></p>
+  </section>
+
+  <!-- ส่วนหลังล็อกอิน -->
+  <section id="screen-game" class="hidden">
+    <div class="me-bar">
+      <div style="text-align:left;">
+        <div class="me-name" id="meName">—</div>
+        <div class="me-score" id="meScore">คะแนน 0</div>
+      </div>
+      <div class="pill" id="meStatus">รอ</div>
+    </div>
+
+    <!-- ล็อบบี้ -->
+    <div id="view-lobby">
+      <div class="spinner"></div>
+      <div class="status-big" id="lobbyTitle">กำลังรอจับคู่…</div>
+      <p class="sub" id="lobbyMsg">ระบบจะจับคู่ให้โดยอัตโนมัติ</p>
+      <button class="btn-main hidden" id="readyBtn">พร้อมเล่น ✋</button>
+    </div>
+
+    <!-- กระดานเกม -->
+    <div id="view-match" class="hidden">
+      <div class="match-head">
+        <div class="vs">คุณ <b id="mySymInline"></b> พบกับ <b id="oppName"></b></div>
+      </div>
+      <div class="turn-tag" id="turnTag">—</div>
+      <div class="board" id="board"></div>
+      <div class="my-symbol">คุณคือฝ่าย <b id="mySymbol">X</b></div>
+    </div>
+
+    <!-- ผลการแข่งขัน -->
+    <div id="view-result" class="hidden">
+      <div class="result-emoji" id="resEmoji">🎉</div>
+      <div class="result-text" id="resText">ชนะ!</div>
+      <p class="sub" id="resScore">คะแนนรวม 0</p>
+      <button class="btn-main" id="againBtn">เล่นต่อ 🔁</button>
+    </div>
+
+    <div class="notice hidden" id="matchmakingClosed">⏸️ ครูยังไม่เปิดการแข่งขัน กรุณารอสักครู่…</div>
+    <button class="btn-ghost" id="leaveBtn">ออกจากห้อง</button>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+let me = null;
+let current = null; // { matchId, yourSymbol, yourTurn, board }
+
+const $ = (id) => document.getElementById(id);
+function show(id) {
+  ['view-lobby', 'view-match', 'view-result'].forEach((v) => $(v).classList.add('hidden'));
+  $(id).classList.remove('hidden');
+}
+function toast(msg) {
+  const t = $('toast'); t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// ---------- เข้าร่วม ----------
+$('joinBtn').addEventListener('click', join);
+$('nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') join(); });
+function join() {
+  const name = $('nameInput').value.trim();
+  if (!name) { $('nameInput').focus(); return; }
+  socket.emit('player:join', name);
+}
+
+socket.on('player:joined', (data) => {
+  me = { id: data.id, name: data.name, score: 0 };
+  $('screen-login').classList.add('hidden');
+  $('screen-game').classList.remove('hidden');
+  $('meName').textContent = data.name;
+  updateMatchmakingNotice(data.matchmakingOpen);
+  // เข้าคิวอัตโนมัติ
+  socket.emit('player:ready');
+});
+
+function updateMatchmakingNotice(open) {
+  $('matchmakingClosed').classList.toggle('hidden', open);
+}
+
+// ---------- รอจับคู่ ----------
+socket.on('queue:waiting', (data) => {
+  show('view-lobby');
+  $('meStatus').textContent = data.matchmakingOpen ? 'รอจับคู่' : 'รอครูเปิด';
+  $('lobbyTitle').textContent = data.matchmakingOpen ? 'กำลังรอจับคู่…' : 'รอครูเปิดการแข่งขัน';
+  $('lobbyMsg').textContent = data.matchmakingOpen
+    ? 'ระบบจะจับคู่ให้โดยอัตโนมัติ'
+    : 'เมื่อครูกดเริ่ม ระบบจะจับคู่ให้ทันที';
+  $('readyBtn').classList.add('hidden');
+  updateMatchmakingNotice(data.matchmakingOpen);
+});
+
+// ---------- เริ่มแมตช์ ----------
+socket.on('match:start', (data) => {
+  current = { matchId: data.matchId, yourSymbol: data.yourSymbol, yourTurn: data.yourTurn, board: data.board };
+  $('meStatus').textContent = 'กำลังแข่ง';
+  $('oppName').textContent = data.opponentName;
+  $('mySymbol').textContent = data.yourSymbol;
+  $('mySymInline').textContent = '(' + data.yourSymbol + ')';
+  $('mySymbol').className = data.yourSymbol === 'X' ? 'cell-x-text' : '';
+  renderBoard(data.board, data.yourTurn, null);
+  updateTurn(data.yourTurn);
+  show('view-match');
+});
+
+socket.on('match:update', (data) => {
+  if (!current || current.matchId !== data.matchId) return;
+  current.board = data.board; current.yourTurn = data.yourTurn;
+  renderBoard(data.board, data.yourTurn, null);
+  updateTurn(data.yourTurn);
+});
+
+function updateTurn(yourTurn) {
+  const tag = $('turnTag');
+  if (yourTurn) { tag.textContent = '👉 ตาของคุณ'; tag.className = 'turn-tag turn-you'; }
+  else { tag.textContent = '⏳ รอคู่แข่ง…'; tag.className = 'turn-tag turn-opp'; }
+}
+
+function renderBoard(board, yourTurn, winLine) {
+  const el = $('board'); el.innerHTML = '';
+  board.forEach((val, i) => {
+    const c = document.createElement('div');
+    c.className = 'cell' + (val ? ' filled ' + val.toLowerCase() : '');
+    if (winLine && winLine.includes(i)) c.classList.add('win');
+    if (val || !yourTurn) c.classList.add('disabled');
+    c.textContent = val;
+    c.addEventListener('click', () => {
+      if (!current || !current.yourTurn || board[i]) return;
+      socket.emit('player:move', { matchId: current.matchId, index: i });
+    });
+    el.appendChild(c);
+  });
+}
+
+// ---------- จบแมตช์ ----------
+socket.on('match:end', (data) => {
+  renderBoard(data.board, false, data.winningLine);
+  setTimeout(() => {
+    me.score = data.you.score;
+    $('meScore').textContent = 'คะแนน ' + data.you.score;
+    $('meStatus').textContent = 'จบเกม';
+    const emoji = $('resEmoji'), txt = $('resText');
+    if (data.outcome === 'win') { emoji.textContent = '🏆'; txt.textContent = 'คุณชนะ! +3 คะแนน'; txt.className = 'result-text result-win'; }
+    else if (data.outcome === 'lose') { emoji.textContent = '💪'; txt.textContent = 'แพ้ สู้ต่อไป!'; txt.className = 'result-text result-lose'; }
+    else { emoji.textContent = '🤝'; txt.textContent = 'เสมอ! +1 คะแนน'; txt.className = 'result-text result-draw'; }
+    $('resScore').textContent = 'คะแนนรวม ' + data.you.score + ' • ชนะ ' + data.you.wins + ' เสมอ ' + data.you.draws + ' แพ้ ' + data.you.losses;
+    current = null;
+    show('view-result');
+  }, 900);
+});
+
+socket.on('match:void', (data) => {
+  toast(data.reason || 'แมตช์เป็นโมฆะ');
+  current = null;
+});
+
+$('againBtn').addEventListener('click', () => socket.emit('player:ready'));
+$('readyBtn').addEventListener('click', () => socket.emit('player:ready'));
+
+// ครูเปิด/ปิด หรือ ล้างคะแนน
+socket.on('scores:cleared', () => {
+  if (me) { me.score = 0; $('meScore').textContent = 'คะแนน 0'; toast('ครูล้างผลการแข่งขันแล้ว'); }
+});
+socket.on('kicked', () => { alert('ครูนำคุณออกจากการแข่งขัน'); location.reload(); });
+
+$('leaveBtn').addEventListener('click', () => {
+  if (confirm('ออกจากห้องแข่งขัน?')) { socket.emit('player:leave'); location.reload(); }
+});
+
+socket.on('disconnect', () => toast('การเชื่อมต่อหลุด กำลังเชื่อมใหม่…'));
+</script>
+</body>
+</html>

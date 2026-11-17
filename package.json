@@ -1,0 +1,16 @@
+{
+  "name": "ox-game-online",
+  "version": "1.0.0",
+  "description": "เกม OX ออนไลน์สำหรับห้องเรียน - ครูจัดการแข่งขัน นักเรียนแข่งพร้อมกันผ่านเบราว์เซอร์",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
