@@ -7,7 +7,7 @@
 
 const CONFIG = {
   // 🔴 แก้ตรงนี้: วาง Web App URL ของคุณ (ลงท้าย /exec)
-  API_URL: 'PASTE_YOUR_WEB_APP_URL_HERE',
+  API_URL: 'https://script.google.com/macros/s/AKfycbyoBXyA4ISAPACLpC_wHDyDy6SWcdHNUnezabNqCzVLtNR1AvRf6_jrEhEq5TrXjN_t/exec',
 
   // ช่วงเวลา polling (มิลลิวินาที)
   POLL_GAME: 1500,    // ระหว่างเล่นเกม 1.5 วิ
